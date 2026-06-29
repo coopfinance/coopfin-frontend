@@ -83,10 +83,6 @@ export interface ContractAddresses {
   loan: string;
   voting: string;
   governance: string;
-  dividend: string;
-}
-
-export interface DashboardStats {
   totalLoansValue: number;
   totalDividendsDistributed: number;
 }
@@ -102,14 +98,18 @@ export interface Notification {
   read: boolean;
   createdAt: string;
   metadata?: {
+    groupId?: string;
     groupName?: string;
     amount?: number;
     currency?: string;
     actor?: string;
-    proposalTitle?: string;
-    [key: string]: unknown;
+    proposalId?: number;
   };
 }
+export interface DashboardStats {
+  totalGroups: number;
+  totalMembers: number;
+  totalContributions: number;
   totalLoansActive: number;
   totalLoansValue: number;
   totalDividendsDistributed: number;
