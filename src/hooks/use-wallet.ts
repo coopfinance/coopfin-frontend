@@ -5,14 +5,15 @@ import {
   StellarWalletsKit,
   WalletNetwork,
   FREIGHTER_ID,
-  LOBSTR_ID,
-  xBullWalletId,
+  FreighterModule,
+  LobstrModule,
+  xBullModule,
 } from "@creit.tech/stellar-wallets-kit";
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,
   selectedWalletId: FREIGHTER_ID,
-  wallets: [FREIGHTER_ID, LOBSTR_ID, xBullWalletId],
+  modules: [new FreighterModule(), new LobstrModule(), new xBullModule()],
 });
 
 export function useWallet() {
