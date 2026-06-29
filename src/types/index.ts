@@ -94,3 +94,23 @@ export interface DashboardStats {
   totalLoansValue: number;
   totalDividendsDistributed: number;
 }
+
+export type NotificationType = "contribution" | "loan" | "vote" | "distribution";
+
+export interface Notification {
+  id: string;
+  recipient: string;
+  type: NotificationType;
+  title: string;
+  description: string;
+  read: boolean;
+  createdAt: string;
+  metadata?: {
+    amount?: number;
+    currency?: string;
+    groupName?: string;
+    actorName?: string;
+    proposalTitle?: string;
+    period?: string;
+  };
+}
