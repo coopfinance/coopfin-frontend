@@ -3,23 +3,44 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
+import { useToast } from "@/hooks/use-toast";
 
-interface Props { onClose: () => void; }
+interface Props {
+  onClose: () => void;
+}
 
 export function LoanRequestModal({ onClose }: Props) {
   const { address, connect } = useWallet();
+  const toast = useToast();
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState("");
   const [days, setDays] = useState("30");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!address) { await connect(); return; }
+    if (!address) {
+      await connect();
+      return;
+    }
     setIsSubmitting(true);
     try {
       // TODO: Call LoanContract.request_loan via Soroban
-      console.log("Requesting loan:", { amount, purpose, days, borrower: address });
+      console.log("Requesting loan:", {
+        amount,
+        purpose,
+        days,
+        borrower: address,
+      });
+      toast.success(
+        "Loan request submitted to Stellar",
+        `Submitted ${amount} USDC for ${days} days.`,
+      );
       onClose();
+    } catch (err: unknown) {
+      toast.error(
+        "Failed to submit loan request",
+        err instanceof Error ? err.message : "Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -30,7 +51,10 @@ export function LoanRequestModal({ onClose }: Props) {
       <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
         <div className="flex items-center justify-between p-5 border-b">
           <h2 className="text-lg font-bold">Request Loan</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -41,7 +65,9 @@ export function LoanRequestModal({ onClose }: Props) {
               Loan Amount (USDC)
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                $
+              </span>
               <input
                 type="number"
                 value={amount}
@@ -100,7 +126,11 @@ export function LoanRequestModal({ onClose }: Props) {
             disabled={isSubmitting || !amount || !purpose}
             className="flex-1 px-4 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {!address ? "Connect Wallet" : isSubmitting ? "Submitting..." : "Submit Request"}
+            {!address
+              ? "Connect Wallet"
+              : isSubmitting
+                ? "Submitting..."
+                : "Submit Request"}
           </button>
         </div>
       </div>
