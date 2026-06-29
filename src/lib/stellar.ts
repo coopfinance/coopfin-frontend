@@ -11,8 +11,7 @@ import {
 } from "@stellar/stellar-sdk";
 
 export const STELLAR_NETWORK =
-  (process.env.NEXT_PUBLIC_STELLAR_NETWORK as keyof typeof Networks) ||
-  "TESTNET";
+  process.env.NEXT_PUBLIC_STELLAR_NETWORK || "TESTNET";
 
 export const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL ||
@@ -25,7 +24,7 @@ export const SOROBAN_RPC_URL =
 export const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
 
 export const networkPassphrase =
-  STELLAR_NETWORK === "MAINNET"
+  STELLAR_NETWORK === "MAINNET" || STELLAR_NETWORK === "PUBLIC"
     ? Networks.PUBLIC
     : Networks.TESTNET;
 
