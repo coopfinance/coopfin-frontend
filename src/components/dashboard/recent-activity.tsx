@@ -8,15 +8,10 @@ import { Notification } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-const activityIcons: Record<string, string> = {
-  contribution: "💰",
-  loan: "🏧",
-  vote: "🗳️",
-  distribution: "📤",
-};
-
 async function fetchNotifications(recipient: string): Promise<Notification[]> {
-  const res = await fetch(`${API_URL}/api/notifications?recipient=${recipient}`);
+  const res = await fetch(
+    `${API_URL}/api/notifications?recipient=${encodeURIComponent(recipient)}`
+  );
   if (!res.ok) {
     throw new Error("Failed to fetch notifications");
   }
@@ -32,8 +27,38 @@ async function markNotificationRead(id: string): Promise<void> {
   }
 }
 
-export function RecentActivity() {
-  const { publicKey } = useWalletStore();
+function getActivityIcon(type: Notification["type"]) {
+  switch (type) {
+    case "contribution":
+      return "💰";
+    case "loan":
+      return "🏧";
+    case "vote":
+      return "🗳️";
+    case "distribution":
+      return "📤";
+    default:
+      return "📋";
+  }
+}
+
+function getActivityLabel(type: Notification["type"]) {
+  switch (type) {
+    case "contribution":
+      return "Contribution";
+    case "loan":
+      return "Loan";
+    case "vote":
+      return "Vote";
+    case "distribution":
+      return "Distribution";
+    default:
+      return "Activity";
+  }
+}
+
+export default function RecentActivity() {
+  const { address } = useWalletStore();
   const queryClient = useQueryClient();
   const [markingAll, setMarkingAll] = useState(false);
 
@@ -42,98 +67,78 @@ export function RecentActivity() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["notifications", publicKey],
-    queryFn: () => fetchNotifications(publicKey!),
-    enabled: !!publicKey,
+    queryKey: ["notifications", address],
+    queryFn: () => fetchNotifications(address!),
+    enabled: !!address,
   });
 
   const markReadMutation = useMutation({
     mutationFn: markNotificationRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications", publicKey] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", address] });
     },
   });
 
+  const unreadCount =
+    notifications?.filter((n) => !n.read).length ?? 0;
+
   const handleMarkAllRead = async () => {
     if (!notifications) return;
-    const unreadNotifications = notifications.filter((n) => !n.read);
-    if (unreadNotifications.length === 0) return;
-
     setMarkingAll(true);
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
     try {
-      await Promise.all(
-        unreadNotifications.map((n) => markNotificationRead(n.id))
-      );
-      queryClient.invalidateQueries({ queryKey: ["notifications", publicKey] });
+      await Promise.all(unreadIds.map((id) => markReadMutation.mutateAsync(id)));
     } finally {
       setMarkingAll(false);
     }
   };
 
-  const hasUnread = notifications?.some((n) => !n.read) ?? false;
-
-  if (!publicKey) {
+  if (!address) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">
-          Recent Activity
-        </h3>
-        <p className="text-muted-foreground text-sm">
-          Connect your wallet to see activity
-        </p>
+      <div className="text-sm text-muted-foreground">
+        Connect your wallet to see activity
       </div>
     );
   }
 
   if (isLoading) {
+    return <div className="text-sm text-muted-foreground">Loading…</div>;
+  }
+
+  if (error) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">
-          Recent Activity
-        </h3>
-        <p className="text-muted-foreground text-sm">Loading...</p>
+      <div className="text-sm text-destructive">
+        Error loading activity. Please try again.
       </div>
     );
   }
 
-  if (error || !notifications || notifications.length === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h3 className="text-lg font-semibold text-card-foreground mb-4">
-          Recent Activity
-        </h3>
-        <p className="text-muted-foreground text-sm">No recent activity</p>
-      </div>
-    );
+  if (!notifications || notifications.length === 0) {
+    return <div className="text-sm text-muted-foreground">No recent activity</div>;
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-card-foreground">
-          Recent Activity
-        </h3>
-        {hasUnread && (
+    <div className="space-y-3">
+      {unreadCount > 0 && (
+        <div className="flex justify-end">
           <button
             onClick={handleMarkAllRead}
-            disabled={markingAll}
-            className="text-xs text-primary hover:text-primary/80 disabled:opacity-50 font-medium"
+            disabled={markingAll || markReadMutation.isPending}
+            className="text-xs text-primary hover:underline disabled:opacity-50"
           >
-            {markingAll ? "Marking..." : "Mark all read"}
+            {markingAll ? "Marking all read…" : "Mark all read"}
           </button>
-        )}
-      </div>
-      <div className="flex-1 overflow-y-auto space-y-0 max-h-[400px]">
+        </div>
+      )}
+      <div className="max-h-[400px] overflow-y-auto space-y-0">
         {notifications.map((notification, index) => (
           <div key={notification.id}>
             <div className="flex items-start gap-3 py-3">
-              <span className="text-lg flex-shrink-0 mt-0.5">
-                {activityIcons[notification.type] || "📋"}
+              <span className="text-lg" role="img" aria-label={getActivityLabel(notification.type)}>
+                {getActivityIcon(notification.type)}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-card-foreground leading-relaxed">
-                  {notification.description}
-                </p>
+                <p className="text-sm text-foreground">{notification.description}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {formatDistanceToNow(new Date(notification.createdAt), {
                     addSuffix: true,
@@ -141,11 +146,11 @@ export function RecentActivity() {
                 </p>
               </div>
               {!notification.read && (
-                <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                <span className="inline-block w-2 h-2 bg-primary rounded-full mt-1.5 flex-shrink-0" />
               )}
             </div>
             {index < notifications.length - 1 && (
-              <div className="border-b border-border/60" />
+              <div className="border-b border-border" />
             )}
           </div>
         ))}
@@ -153,6 +158,9 @@ export function RecentActivity() {
     </div>
   );
 }
+import { CheckCheck, Wallet, DollarSign, CreditCard, ThumbsUp, Send } from "lucide-react";
+import { clsx } from "clsx";
+import { useWallet } from "@/hooks/use-wallet";
 import type { Notification } from "@/types";
 
 // TODO: Replace with real API responses once backend is ready
