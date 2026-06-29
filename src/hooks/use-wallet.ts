@@ -2,18 +2,29 @@
 
 import { useState, useCallback } from "react";
 import {
+  FreighterModule,
   StellarWalletsKit,
   WalletNetwork,
+  LobstrModule,
   FREIGHTER_ID,
-  LOBSTR_ID,
-  xBullWalletId,
+  xBullModule,
 } from "@creit.tech/stellar-wallets-kit";
 
-const kit = new StellarWalletsKit({
-  network: WalletNetwork.TESTNET,
-  selectedWalletId: FREIGHTER_ID,
-  wallets: [FREIGHTER_ID, LOBSTR_ID, xBullWalletId],
-});
+let kit: StellarWalletsKit | null = null;
+
+function getWalletKit(): StellarWalletsKit {
+  if (typeof window === "undefined") {
+    throw new Error("Wallet kit is only available in the browser");
+  }
+
+  kit ??= new StellarWalletsKit({
+    network: WalletNetwork.TESTNET,
+    selectedWalletId: FREIGHTER_ID,
+    modules: [new FreighterModule(), new LobstrModule(), new xBullModule()],
+  });
+
+  return kit;
+}
 
 export function useWallet() {
   const [address, setAddress] = useState<string | null>(null);
@@ -24,10 +35,11 @@ export function useWallet() {
     setIsConnecting(true);
     setError(null);
     try {
-      await kit.openModal({
+      const walletKit = getWalletKit();
+      await walletKit.openModal({
         onWalletSelected: async (option) => {
-          kit.setWallet(option.id);
-          const { address: addr } = await kit.getAddress();
+          walletKit.setWallet(option.id);
+          const { address: addr } = await walletKit.getAddress();
           setAddress(addr);
         },
       });
@@ -42,14 +54,17 @@ export function useWallet() {
     setAddress(null);
   }, []);
 
-  const signTransaction = useCallback(async (xdr: string) => {
-    if (!address) throw new Error("Wallet not connected");
-    const { signedTxXdr } = await kit.signTransaction(xdr, {
-      address,
-      networkPassphrase: WalletNetwork.TESTNET,
-    });
-    return signedTxXdr;
-  }, [address]);
+  const signTransaction = useCallback(
+    async (xdr: string) => {
+      if (!address) throw new Error("Wallet not connected");
+      const { signedTxXdr } = await getWalletKit().signTransaction(xdr, {
+        address,
+        networkPassphrase: WalletNetwork.TESTNET,
+      });
+      return signedTxXdr;
+    },
+    [address],
+  );
 
   return { address, isConnecting, error, connect, disconnect, signTransaction };
 }

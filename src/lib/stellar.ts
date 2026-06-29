@@ -11,12 +11,10 @@ import {
 } from "@stellar/stellar-sdk";
 
 export const STELLAR_NETWORK =
-  (process.env.NEXT_PUBLIC_STELLAR_NETWORK as keyof typeof Networks) ||
-  "TESTNET";
+  process.env.NEXT_PUBLIC_STELLAR_NETWORK === "PUBLIC" ? "PUBLIC" : "TESTNET";
 
 export const HORIZON_URL =
-  process.env.NEXT_PUBLIC_HORIZON_URL ||
-  "https://horizon-testnet.stellar.org";
+  process.env.NEXT_PUBLIC_HORIZON_URL || "https://horizon-testnet.stellar.org";
 
 export const SOROBAN_RPC_URL =
   process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ||
@@ -25,17 +23,15 @@ export const SOROBAN_RPC_URL =
 export const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
 
 export const networkPassphrase =
-  STELLAR_NETWORK === "MAINNET"
-    ? Networks.PUBLIC
-    : Networks.TESTNET;
+  STELLAR_NETWORK === "PUBLIC" ? Networks.PUBLIC : Networks.TESTNET;
 
 // Contract IDs from deployments/testnet.json (injected at build time or loaded at runtime)
 export const CONTRACT_IDS = {
-  treasury:   process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ID || "",
-  loan:       process.env.NEXT_PUBLIC_LOAN_CONTRACT_ID || "",
-  voting:     process.env.NEXT_PUBLIC_VOTING_CONTRACT_ID || "",
+  treasury: process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ID || "",
+  loan: process.env.NEXT_PUBLIC_LOAN_CONTRACT_ID || "",
+  voting: process.env.NEXT_PUBLIC_VOTING_CONTRACT_ID || "",
   governance: process.env.NEXT_PUBLIC_GOVERNANCE_CONTRACT_ID || "",
-  dividend:   process.env.NEXT_PUBLIC_DIVIDEND_CONTRACT_ID || "",
+  dividend: process.env.NEXT_PUBLIC_DIVIDEND_CONTRACT_ID || "",
 };
 
 /** Format a Stellar amount (7 decimal places) to a human-readable string */
@@ -62,7 +58,7 @@ export async function simulateContractCall(
   contractId: string,
   method: string,
   args: xdr.ScVal[],
-  sourceAccount: string
+  sourceAccount: string,
 ): Promise<unknown> {
   const account = await server.getAccount(sourceAccount);
   const contract = new Contract(contractId);
