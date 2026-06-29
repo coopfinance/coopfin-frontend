@@ -8,6 +8,13 @@ import { Notification } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+const activityIcons: Record<string, string> = {
+  contribution: "💰",
+  loan: "🏧",
+  vote: "🗳️",
+  distribution: "📤",
+};
+
 async function fetchNotifications(recipient: string): Promise<Notification[]> {
   const res = await fetch(
     `${API_URL}/api/notifications?recipient=${encodeURIComponent(recipient)}`
@@ -27,130 +34,111 @@ async function markNotificationRead(id: string): Promise<void> {
   }
 }
 
-function getActivityIcon(type: Notification["type"]) {
-  switch (type) {
-    case "contribution":
-      return "💰";
-    case "loan":
-      return "🏧";
-    case "vote":
-      return "🗳️";
-    case "distribution":
-      return "📤";
-    default:
-      return "📋";
-  }
-}
-
-function getActivityLabel(type: Notification["type"]) {
-  switch (type) {
-    case "contribution":
-      return "Contribution";
-    case "loan":
-      return "Loan";
-    case "vote":
-      return "Vote";
-    case "distribution":
-      return "Distribution";
-    default:
-      return "Activity";
-  }
-}
-
-export default function RecentActivity() {
+export function RecentActivity() {
   const { address } = useWalletStore();
   const queryClient = useQueryClient();
-  const [markingAll, setMarkingAll] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
     data: notifications,
     isLoading,
-    error,
+    isError,
   } = useQuery({
     queryKey: ["notifications", address],
     queryFn: () => fetchNotifications(address!),
     enabled: !!address,
   });
 
-  const markReadMutation = useMutation({
-    mutationFn: markNotificationRead,
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      if (!notifications) return;
+      const unread = notifications.filter((n) => !n.read);
+      await Promise.all(unread.map((n) => markNotificationRead(n.id)));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", address] });
+      setErrorMessage(null);
+    },
+    onError: () => {
+      setErrorMessage("Failed to mark all as read. Please try again.");
     },
   });
 
-  const unreadCount =
-    notifications?.filter((n) => !n.read).length ?? 0;
-
-  const handleMarkAllRead = async () => {
-    if (!notifications) return;
-    setMarkingAll(true);
-    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
-    try {
-      await Promise.all(unreadIds.map((id) => markReadMutation.mutateAsync(id)));
-    } finally {
-      setMarkingAll(false);
-    }
-  };
+  const hasUnread = notifications?.some((n) => !n.read);
 
   if (!address) {
     return (
-      <div className="text-sm text-muted-foreground">
-        Connect your wallet to see activity
+      <div className="p-4 border rounded-xl h-full flex items-center justify-center">
+        <p className="text-sm text-muted-foreground text-center">
+          Connect your wallet to see activity
+        </p>
       </div>
     );
   }
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading…</div>;
+    return (
+      <div className="p-4 border rounded-xl h-full flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading activity...</p>
+      </div>
+    );
   }
 
-  if (error) {
+  if (isError) {
     return (
-      <div className="text-sm text-destructive">
-        Error loading activity. Please try again.
+      <div className="p-4 border rounded-xl h-full flex items-center justify-center">
+        <p className="text-sm text-red-500">
+          Failed to load activity. Please try again.
+        </p>
       </div>
     );
   }
 
   if (!notifications || notifications.length === 0) {
-    return <div className="text-sm text-muted-foreground">No recent activity</div>;
+    return (
+      <div className="p-4 border rounded-xl h-full flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">No recent activity</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-3">
-      {unreadCount > 0 && (
-        <div className="flex justify-end">
+    <div className="p-4 border rounded-xl h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold">Recent Activity</h3>
+        {hasUnread && (
           <button
-            onClick={handleMarkAllRead}
-            disabled={markingAll || markReadMutation.isPending}
-            className="text-xs text-primary hover:underline disabled:opacity-50"
+            onClick={() => markAllReadMutation.mutate()}
+            disabled={markAllReadMutation.isPending}
+            className="text-xs text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {markingAll ? "Marking all read…" : "Mark all read"}
+            Mark all read
           </button>
-        </div>
+        )}
+      </div>
+      {errorMessage && (
+        <p className="text-xs text-red-500 mb-2">{errorMessage}</p>
       )}
-      <div className="max-h-[400px] overflow-y-auto space-y-0">
+      <div className="flex-1 overflow-y-auto space-y-0">
         {notifications.map((notification, index) => (
           <div key={notification.id}>
             <div className="flex items-start gap-3 py-3">
-              <span className="text-lg" role="img" aria-label={getActivityLabel(notification.type)}>
-                {getActivityIcon(notification.type)}
+              <span className="text-lg flex-shrink-0">
+                {activityIcons[notification.type] || "🔔"}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-foreground">{notification.description}</p>
+                <p className="text-sm text-foreground leading-relaxed">
+                  {notification.description}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {formatDistanceToNow(new Date(notification.createdAt), {
                     addSuffix: true,
                   })}
                 </p>
               </div>
-              {!notification.read && (
-                <span className="inline-block w-2 h-2 bg-primary rounded-full mt-1.5 flex-shrink-0" />
-              )}
             </div>
             {index < notifications.length - 1 && (
-              <div className="border-b border-border" />
+              <div className="border-b border-border/50" />
             )}
           </div>
         ))}
@@ -158,9 +146,6 @@ export default function RecentActivity() {
     </div>
   );
 }
-import { CheckCheck, Wallet, DollarSign, CreditCard, ThumbsUp, Send } from "lucide-react";
-import { clsx } from "clsx";
-import { useWallet } from "@/hooks/use-wallet";
 import type { Notification } from "@/types";
 
 // TODO: Replace with real API responses once backend is ready
