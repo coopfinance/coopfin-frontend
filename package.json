@@ -29,7 +29,6 @@
     "@radix-ui/react-dropdown-menu": "^2.1.0",
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.0",
-    "@radix-ui/react-badge": "^1.0.0",
     "class-variance-authority": "^0.7.0"
   },
   "devDependencies": {

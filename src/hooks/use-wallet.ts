@@ -5,15 +5,29 @@ import {
   StellarWalletsKit,
   WalletNetwork,
   FREIGHTER_ID,
-  LOBSTR_ID,
-  xBullWalletId,
+  FreighterModule,
+  LobstrModule,
+  xBullModule,
 } from "@creit.tech/stellar-wallets-kit";
+import { toastError, toastInfo } from "@/hooks/use-toast";
 
-const kit = new StellarWalletsKit({
-  network: WalletNetwork.TESTNET,
-  selectedWalletId: FREIGHTER_ID,
-  wallets: [FREIGHTER_ID, LOBSTR_ID, xBullWalletId],
-});
+let walletKit: StellarWalletsKit | null = null;
+
+function getWalletKit() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  if (!walletKit) {
+    walletKit = new StellarWalletsKit({
+      network: WalletNetwork.TESTNET,
+      selectedWalletId: FREIGHTER_ID,
+      modules: [new FreighterModule(), new LobstrModule(), new xBullModule()],
+    });
+  }
+
+  return walletKit;
+}
 
 export function useWallet() {
   const [address, setAddress] = useState<string | null>(null);
@@ -24,15 +38,27 @@ export function useWallet() {
     setIsConnecting(true);
     setError(null);
     try {
+      const kit = getWalletKit();
+      if (!kit) {
+        throw new Error("Wallet connection is only available in the browser");
+      }
+
       await kit.openModal({
         onWalletSelected: async (option) => {
           kit.setWallet(option.id);
           const { address: addr } = await kit.getAddress();
           setAddress(addr);
+          toastInfo(
+            "Wallet connected",
+            `Connected ${addr.slice(0, 6)}...${addr.slice(-4)}`,
+          );
         },
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to connect wallet");
+      const message =
+        err instanceof Error ? err.message : "Failed to connect wallet";
+      setError(message);
+      toastError("Failed to connect wallet", message);
     } finally {
       setIsConnecting(false);
     }
@@ -42,14 +68,22 @@ export function useWallet() {
     setAddress(null);
   }, []);
 
-  const signTransaction = useCallback(async (xdr: string) => {
-    if (!address) throw new Error("Wallet not connected");
-    const { signedTxXdr } = await kit.signTransaction(xdr, {
-      address,
-      networkPassphrase: WalletNetwork.TESTNET,
-    });
-    return signedTxXdr;
-  }, [address]);
+  const signTransaction = useCallback(
+    async (xdr: string) => {
+      if (!address) throw new Error("Wallet not connected");
+      const kit = getWalletKit();
+      if (!kit) {
+        throw new Error("Wallet signing is only available in the browser");
+      }
+
+      const { signedTxXdr } = await kit.signTransaction(xdr, {
+        address,
+        networkPassphrase: WalletNetwork.TESTNET,
+      });
+      return signedTxXdr;
+    },
+    [address],
+  );
 
   return { address, isConnecting, error, connect, disconnect, signTransaction };
 }
