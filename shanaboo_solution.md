@@ -1,50 +1,25 @@
  ```diff
---- a/src/types/index.ts
-+++ b/src/types/index.ts
-@@ -88,3 +88,22 @@
-   totalLoansValue: number;
-   totalDividendsDistributed: number;
- }
-+
-+export type NotificationType = "contribution" | "loan" | "vote" | "distribution";
-+
-+export interface Notification {
-+  id: string;
-+  recipient: string;
-+  type: NotificationType;
-+  title: string;
-+  description: string;
-+  read: boolean;
-+  createdAt:ribs: string;
-+  metadata?: Record<string, unknown>;
-+}
-+
-+export interface NotificationResponse {
-+  notifications: Notification[];
-+  unreadCount: number;
-+}
-+
 --- a/src/components/dashboard/recent-activity.tsx
 +++ b/src/components/dashboard/recent-activity.tsx
-@@ -0,0 +1,195 @@
+@@ -1,7 +1,163 @@
 +"use client";
 +
 +import { useState } from "react";
 +import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 +import { formatDistanceToNow } from "date-fns";
-+import { useWalletStore } from "@/store/wallet";
-+import { Notification, NotificationType } from "@/types";
++import { useWalletStore } from "@/store/wallet-store";
++import { Notification } from "@/types";
 +
 +const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 +
-+const activityIcons: Record<NotificationType, string> = {
++const activityIcons: Record<string, string> = {
 +  contribution: "💰",
 +  loan: "🏧",
 +  vote: "🗳️",
 +  distribution: "📤",
 +};
 +
-+const activityLabels: Record<NotificationType, string> = {
++const activityLabels: Record<string, string> = {
 +  contribution: "Contribution",
 +  loan: "Loan",
 +  vote: "Vote",
@@ -53,12 +28,11 @@
 +
 +async function fetchNotifications(recipient: string): Promise<Notification[]> {
 +  // TODO: connect to API
-+  // const response = await fetch(`${API_URL}/api/notifications?recipient=${encodeURIComponent(recipient)}`);
++  // const response = await fetch(`${API_URL}/api/notifications?recipient=${recipient}`);
 +  // if (!response.ok) {
 +  //   throw new Error("Failed to fetch notifications");
 +  // }
-+  // const data: NotificationResponse = await response.json();
-+  // return data.notifications;
++  // return response.json();
 +
 +  // Mock data for development
 +  return [
@@ -66,7 +40,6 @@
 +      id: "1",
 +      recipient,
 +      type: "contribution",
-+      title: "New Contribution",
 +      description: "Adaeze contributed 50 USDC to Eko Savings",
 +      read: false,
 +      createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
@@ -75,28 +48,25 @@
 +      id: "2",
 +      recipient,
 +      type: "loan",
-+      title: "Loan Approved",
-+      description: "Your loan request of 200 USDC has been approved",
++      description: "Loan request of 200 USDC approved by governance",
 +      read: false,
-+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
++      createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
 +    },
 +    {
 +      id: "3",
 +      recipient,
 +      type: "vote",
-+      title: "Proposal Vote",
-+      description: "New governance proposal: Increase contribution limit",
++      description: "New proposal: Increase minimum contribution to 100 USDC",
 +      read: true,
-+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
++      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
 +    },
 +    {
 +      id: "4",
 +      recipient,
 +      type: "distribution",
-+      title: "Dividend Distribution",
-+      description: "You received 12.5 USDC from Q3 profit distribution",
++      description: "Q1 profit distribution of 500 USDC sent to members",
 +      read: true,
-+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 days ago
++      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
 +    },
 +  ];
 +}
@@ -109,13 +79,18 @@
 +  // if (!response.ok) {
 +  //   throw new Error("Failed to mark notification as read");
 +  // }
-+  return Promise.resolve();
++  console.log(`Marked notification ${id} as read`);
 +}
 +
-+export function RecentActivity() {
+ export function RecentActivity() {
+-    return (
+-      <div className="p-4 border rounded-xl bg-card text-card-foreground">
+-        <p className="text-sm text-muted-foreground">Recent activity feed coming soon...</p>
+-      </div>
+-    );
+-  }
 +  const { address } = useWalletStore();
 +  const queryClient = useQueryClient();
-+  const [markingAll, setMarkingAll] = useState(false);
 +
 +  const {
 +    data: notifications,
@@ -131,49 +106,60 @@
 +    mutationFn: async () => {
 +      if (!notifications) return;
 +      const unreadNotifications = notifications.filter((n) => !n.read);
-+      await Promise.all(unreadNotifications.map((n) => markNotificationAsRead peer(n.id)));
++      await Promise.all(unreadNotifications.map((n) => markNotificationAsRead(n.id)));
 +    },
 +    onSuccess: () => {
-+      queryClient.invalidate2.invalidateQueries({ queryKey: ["notifications", address] });
++      queryClient.invalidateQueries({ queryKey: ["notifications", address] });
 +    },
 +  });
 +
-+  const handleMarkAllRead = async () => {
-+    setMarkingAll(true);
-+    try {
-+      await markAllReadMutation.mutateAsync();
-+    } finally {
-+      setMarkingAll(false);
-+    }
-+  };
-+
 +  if (!address) {
 +    return (
-+      <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-+        <p className="text-sm text-gray-500 dark:text-gray-400">
-+          Connect your wallet to see activity
-+        </p>
++      <div className="p-4 border rounded-xl bg-card text-card-foreground">
++        <p className="text-sm text-muted-foreground">Connect your wallet to see activity</p>
 +      </div>
 +    );
 +  }
 +
 +  if (isLoading) {
 +    return (
-+      <div className="flex h-64 items-center justify-center">
-+        <p className="text-sm text-gray-500">Loading activity...</p>
++      <div className="p-4 border rounded-xl bg-card text-card-foreground">
++        <p className="text-sm text-muted-foreground">Loading activity...</p>
 +      </div>
 +    );
 +  }
 +
-+  if (error) {
++  if (error || !notifications || notifications.length === 0) {
 +    return (
-+      <div className="flex h-64 items-center justify-center">
-+        <p className="text-sm text-red-500">Failed to load activity</p>
++      <div className="p-4 border rounded-xl bg-card text-card-foreground">
++        <p className="text-sm text-muted-foreground">No recent activity</p>
 +      </div>
 +    );
 +  }
 +
-+  if (!notifications || notifications.length === 0) {
-+    return (
-+      <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-+        <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity</p
++  const hasUnread = notifications.some((n) => !n.read);
++
++  return (
++    <div className="border rounded-xl bg-card text-card-foreground flex flex-col">
++      <div className="flex items-center justify-between p-4 pb-2">
++        <h3 className="font-semibold text-sm">Recent Activity</h3>
++        {hasUnread && (
++          <button
++            onClick={() => markAllReadMutation.mutate()}
++            className="text-xs text-primary hover:underline disabled:opacity-50"
++            disabled={markAllReadMutation.isPending}
++          >
++            Mark all read
++          </button>
++        )}
++      </div>
++      <div className="flex-1 overflow-y-auto max-h-[400px]">
++        {notifications.map((notification, index) => (
++          <div key={notification.id}>
++            <div className="flex items-start gap-3 p-4 py-3 hover:bg-accent/50 transition-colors">
++              <span className="text-lg flex-shrink-0 mt-0.5" role="img" aria-label={activityLabels[notification.type]}>
++                {activityIcons[notification.type]}
++              </span>
++              <div className="flex-1 min-w-0">
++                <p className="text-sm leading-relaxed">{notification.description}</p>
++                <p className="text-xs
