@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import {
   StellarWalletsKit,
+  type ISupportedWallet,
   WalletNetwork,
   FreighterModule,
   FREIGHTER_ID,
@@ -12,11 +13,21 @@ import {
   XBULL_ID,
 } from "@creit.tech/stellar-wallets-kit";
 
-const kit = new StellarWalletsKit({
-  network: WalletNetwork.TESTNET,
-  selectedWalletId: FREIGHTER_ID,
-  modules: [new FreighterModule(), new LobstrModule(), new xBullModule()],
-});
+let walletKit: StellarWalletsKit | null = null;
+
+function getWalletKit() {
+  if (walletKit) {
+    return walletKit;
+  }
+
+  walletKit = new StellarWalletsKit({
+    network: WalletNetwork.TESTNET,
+    selectedWalletId: FREIGHTER_ID,
+    modules: [new FreighterModule(), new LobstrModule(), new xBullModule()],
+  });
+
+  return walletKit;
+}
 
 export function useWallet() {
   const [address, setAddress] = useState<string | null>(null);
@@ -27,8 +38,9 @@ export function useWallet() {
     setIsConnecting(true);
     setError(null);
     try {
+      const kit = getWalletKit();
       await kit.openModal({
-        onWalletSelected: async (option) => {
+        onWalletSelected: async (option: ISupportedWallet) => {
           kit.setWallet(option.id);
           const { address: addr } = await kit.getAddress();
           setAddress(addr);
@@ -47,6 +59,7 @@ export function useWallet() {
 
   const signTransaction = useCallback(async (xdr: string) => {
     if (!address) throw new Error("Wallet not connected");
+    const kit = getWalletKit();
     const { signedTxXdr } = await kit.signTransaction(xdr, {
       address,
       networkPassphrase: WalletNetwork.TESTNET,
