@@ -11,6 +11,7 @@ import {
   Loader2,
   Send,
   Vote,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -27,7 +28,10 @@ const activityIcons: Record<NotificationType, { icon: LucideIcon; className: str
 };
 
 function isUnread(notification: Notification) {
-  return notification.isRead === false || !notification.readAt;
+  if (typeof notification.isRead === "boolean") return !notification.isRead;
+  if (typeof notification.read === "boolean") return !notification.read;
+
+  return !notification.readAt;
 }
 
 function getActivityDescription(notification: Notification) {
@@ -77,7 +81,7 @@ async function markNotificationRead(id: string) {
 }
 
 export function RecentActivity() {
-  const { address } = useWallet();
+  const { address, connect, isConnecting } = useWallet();
   const queryClient = useQueryClient();
 
   const queryKey = ["notifications", address];
@@ -119,8 +123,18 @@ export function RecentActivity() {
       </div>
 
       {!address && (
-        <div className="flex-1 flex items-center justify-center p-6 text-center text-sm text-gray-500">
-          Connect your wallet to see activity
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-sm text-gray-500 gap-3">
+          <Wallet className="w-8 h-8 text-gray-300" />
+          <p>Connect your wallet to see activity</p>
+          <button
+            type="button"
+            onClick={connect}
+            disabled={isConnecting}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 hover:text-green-800 disabled:opacity-60"
+          >
+            {isConnecting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Connect Wallet
+          </button>
         </div>
       )}
 

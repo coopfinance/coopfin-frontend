@@ -99,6 +99,7 @@ export type NotificationType = "contribution" | "loan" | "vote" | "distribution"
 
 export interface Notification {
   id: string;
+  recipient?: string;
   type: NotificationType;
   description?: string;
   actor?: string;
@@ -107,6 +108,7 @@ export interface Notification {
   amount?: number;
   currency?: string;
   createdAt: string;
+  read?: boolean;
   isRead?: boolean;
   readAt?: string | null;
 }
