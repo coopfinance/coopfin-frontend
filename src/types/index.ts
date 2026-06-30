@@ -86,15 +86,6 @@ export interface ContractAddresses {
   dividend: string;
 }
 
-export interface Notification {
-  id: string;
-  recipient: string;
-  type: "contribution" | "loan" | "vote" | "distribution";
-  description: string;
-  read: boolean;
-  createdAt: string;
-}
-
 export interface DashboardStats {
   totalGroups: number;
   totalMembers: number;
@@ -102,4 +93,22 @@ export interface DashboardStats {
   totalLoansActive: number;
   totalLoansValue: number;
   totalDividendsDistributed: number;
+}
+
+export type NotificationType = "contribution" | "loan" | "vote" | "distribution";
+
+export interface Notification {
+  id: string;
+  recipient?: string;
+  type: NotificationType;
+  description?: string;
+  actor?: string;
+  actorName?: string;
+  groupName?: string;
+  amount?: number;
+  currency?: string;
+  createdAt: string;
+  read?: boolean;
+  isRead?: boolean;
+  readAt?: string | null;
 }

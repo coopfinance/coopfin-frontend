@@ -6,13 +6,18 @@ import {
   WalletNetwork,
   FREIGHTER_ID,
   LOBSTR_ID,
-  xBullWalletId,
+  XBULL_ID,
+  allowAllModules,
 } from "@creit.tech/stellar-wallets-kit";
+
+const enabledWallets = new Set([FREIGHTER_ID, LOBSTR_ID, XBULL_ID]);
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,
   selectedWalletId: FREIGHTER_ID,
-  wallets: [FREIGHTER_ID, LOBSTR_ID, xBullWalletId],
+  modules: allowAllModules({
+    filterBy: (walletModule) => enabledWallets.has(walletModule.productId),
+  }),
 });
 
 export function useWallet() {
