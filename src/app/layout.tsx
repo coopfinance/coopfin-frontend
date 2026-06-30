@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Sidebar } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
+import { WalletButton } from "@/components/ui/wallet-button";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,7 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 ml-64 p-6">{children}</main>
+            <main className="flex-1 ml-64 p-6">
+              <div className="flex justify-end mb-4">
+                <WalletButton />
+              </div>
+              {children}
+            </main>
           </div>
           <Toaster />
         </Providers>
