@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   StellarWalletsKit,
   WalletNetwork,
@@ -15,7 +21,18 @@ const kit = new StellarWalletsKit({
   wallets: [FREIGHTER_ID, LOBSTR_ID, xBullWalletId],
 });
 
-export function useWallet() {
+type WalletContextValue = {
+  address: string | null;
+  isConnecting: boolean;
+  error: string | null;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+  signTransaction: (xdr: string) => Promise<string>;
+};
+
+const WalletContext = createContext<WalletContextValue | null>(null);
+
+export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,14 +59,31 @@ export function useWallet() {
     setAddress(null);
   }, []);
 
-  const signTransaction = useCallback(async (xdr: string) => {
-    if (!address) throw new Error("Wallet not connected");
-    const { signedTxXdr } = await kit.signTransaction(xdr, {
-      address,
-      networkPassphrase: WalletNetwork.TESTNET,
-    });
-    return signedTxXdr;
-  }, [address]);
+  const signTransaction = useCallback(
+    async (xdr: string) => {
+      if (!address) throw new Error("Wallet not connected");
+      const { signedTxXdr } = await kit.signTransaction(xdr, {
+        address,
+        networkPassphrase: WalletNetwork.TESTNET,
+      });
+      return signedTxXdr;
+    },
+    [address],
+  );
 
-  return { address, isConnecting, error, connect, disconnect, signTransaction };
+  return (
+    <WalletContext.Provider
+      value={{ address, isConnecting, error, connect, disconnect, signTransaction }}
+    >
+      {children}
+    </WalletContext.Provider>
+  );
+}
+
+export function useWallet(): WalletContextValue {
+  const ctx = useContext(WalletContext);
+  if (!ctx) {
+    throw new Error("useWallet must be used within WalletProvider");
+  }
+  return ctx;
 }
