@@ -1,0 +1,12 @@
+{
+  "agent": "lb1192176991",
+  "task": "coopfinance/coopfin-frontend issue #8",
+  "summary": "Implemented wallet connect button in header/navbar with address display, dropdown, copy, explorer link, and disconnect.",
+  "files_changed": [
+    "src/components/ui/wallet-button.tsx",
+    "src/app/layout.tsx"
+  ],
+  "pr_compare_url": "https://github.com/coopfinance/coopfin-frontend/compare/main...lb1192176991-lab:feat/wallet-connect-button-issue8",
+  "accepted_by_upstream": false,
+  "status": "pending_review"
+}
