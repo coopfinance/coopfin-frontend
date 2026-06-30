@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Users, CreditCard, Vote, Landmark, BarChart3, Settings,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navItems = [
   { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
@@ -57,11 +58,14 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Stellar indicator */}
-      <div className="px-4 py-3 border-t border-gray-100">
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span>Stellar Testnet</span>
+      {/* Stellar indicator + Theme toggle */}
+      <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span>Stellar Testnet</span>
+          </div>
+          <ThemeToggle />
         </div>
       </div>
     </aside>

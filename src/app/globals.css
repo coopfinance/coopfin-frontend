@@ -17,6 +17,24 @@
     --radius: 0.5rem;
   }
 
-  * { @apply border-border; }
-  body { @apply bg-background text-foreground; }
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 7%;
+    --card-foreground: 210 40% 98%;
+    --primary: 142.1 70% 45%;
+    --primary-foreground: 144.9 80.4% 10%;
+    --secondary: 217.2 91.2% 59.8%;
+    --muted: 222.2 47% 11%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --border: 217.2 32.6% 17.5%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
 }
