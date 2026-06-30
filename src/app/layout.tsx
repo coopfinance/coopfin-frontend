@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Sidebar } from "@/components/ui/sidebar";
+import { WalletButton } from "@/components/ui/wallet-button";
 import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -21,7 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 ml-64 p-6">{children}</main>
+            <div className="flex-1 flex flex-col">
+              <header className="ml-64 h-16 border-b border-gray-200 bg-white flex items-center justify-end px-6">
+                <WalletButton />
+              </header>
+              <main className="flex-1 p-6">{children}</main>
+            </div>
           </div>
           <Toaster />
         </Providers>
