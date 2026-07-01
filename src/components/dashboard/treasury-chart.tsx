@@ -9,8 +9,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  Legend,
 } from "recharts";
-import { DollarSign } from "lucide-react";
+import { DollarSign, AlertCircle, RefreshCw } from "lucide-react";
 import { formatAmount } from "@/lib/stellar";
 
 interface ChartDataPoint {
@@ -44,8 +45,56 @@ async function fetchContributionData(): Promise<ChartDataPoint[]> {
   }
 }
 
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; name: string; color: string }>;
+  label?: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+      <p className="text-sm font-medium text-gray-900 mb-2">{label}</p>
+      {payload.map((entry, index) => (
+        <div key={index} className="flex items-center gap-2 text-sm">
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-gray-600">{entry.name}:</span>
+          <span className="font-medium text-gray-900">
+            ${formatAmount(entry.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CustomLegend({ payload }: { payload?: Array<{ value: string; color: string }> }) {
+  if (!payload || payload.length === 0) return null;
+
+  return (
+    <div className="flex justify-center gap-6 mt-3">
+      {payload.map((entry, index) => (
+        <div key={index} className="flex items-center gap-2 text-sm">
+          <span
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-gray-600">{entry.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function TreasuryChart() {
-  const { data = MOCK_DATA, isLoading } = useQuery({
+  const { data = MOCK_DATA, isLoading, error, dataUpdatedAt } = useQuery({
     queryKey: ["treasury-chart"],
     queryFn: fetchContributionData,
     refetchInterval: 60_000,
@@ -53,16 +102,36 @@ export function TreasuryChart() {
   });
 
   const hasData = data.length > 0;
+  const lastUpdated = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : null;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-base font-semibold text-gray-900 mb-4">
-        Treasury Overview
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-semibold text-gray-900">
+          Treasury Overview
+        </h3>
+        {lastUpdated && (
+          <span className="text-xs text-gray-400 flex items-center gap-1">
+            <RefreshCw className="w-3 h-3" />
+            Updated {lastUpdated}
+          </span>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="h-64 space-y-3">
           <div className="h-4 w-32 bg-gray-100 animate-pulse rounded" />
           <div className="h-48 w-full bg-gray-100 animate-pulse rounded" />
+        </div>
+      ) : error ? (
+        <div className="h-64 flex flex-col items-center justify-center text-center">
+          <AlertCircle className="w-10 h-10 text-red-300 mb-3" />
+          <p className="text-sm text-gray-500 font-medium mb-1">
+            Failed to load treasury data
+          </p>
+          <p className="text-xs text-gray-400 max-w-[220px]">
+            Showing cached data. Pull to refresh.
+          </p>
         </div>
       ) : !hasData ? (
         <div className="h-64 flex flex-col items-center justify-center text-center">
@@ -75,10 +144,11 @@ export function TreasuryChart() {
           </p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={260}>
           <AreaChart
             data={data}
             margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+            aria-label="Treasury chart showing total contributions and loans outstanding over time"
           >
             <defs>
               <linearGradient id="colorContributions" x1="0" y1="0" x2="0" y2="1">
@@ -103,19 +173,8 @@ export function TreasuryChart() {
               tickLine={false}
               tickFormatter={(v: number) => `$${formatAmount(v)}`}
             />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#fff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "0.5rem",
-                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                fontSize: "0.875rem",
-              }}
-              formatter={(value: number, name: string) => [
-                `$${formatAmount(value)}`,
-                name,
-              ]}
-            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend content={<CustomLegend />} />
             <Area
               type="monotone"
               dataKey="totalContributions"
