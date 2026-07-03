@@ -21,7 +21,7 @@ export interface DeployStep {
   contractId?: string;
 }
 
-async function submitAndPoll(
+export async function submitAndPoll(
   txXdr: string,
   signTransaction: (xdr: string) => Promise<string>
 ): Promise<string> {

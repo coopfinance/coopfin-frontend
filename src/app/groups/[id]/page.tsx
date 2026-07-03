@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Copy, Plus, ExternalLink, ShieldCheck, Users, Banknote, CreditCard, Activity } from "lucide-react";
-import { formatAmount, shortenAddress, server } from "@/lib/stellar";
+import { formatAmount, shortenAddress, parseAmount, server } from "@/lib/stellar";
 import { LoanCard } from "@/components/loans/loan-card";
 import { ProposalCard } from "@/components/governance/proposal-card";
+import { ContributeModal } from "@/components/groups/contribute-modal";
 import type { Group, Member, Contribution, Loan, Proposal } from "@/types";
 import { useWallet } from "@/hooks/use-wallet";
 
@@ -79,7 +80,9 @@ async function fetchProposals(id: string): Promise<Proposal[]> {
 export default function GroupDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const { address } = useWallet();
+  const queryClient = useQueryClient();
   const [liveTreasury, setLiveTreasury] = useState<number | null>(null);
+  const [showContribute, setShowContribute] = useState(false);
 
   const { data: group, isLoading: groupLoading, isError } = useQuery({ queryKey: ["group", id], queryFn: () => fetchGroup(id) });
   const { data: members = [] } = useQuery({ queryKey: ["members", id], queryFn: () => fetchMembers(id) });
@@ -154,12 +157,21 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
             </button>
           </div>
         </div>
-        {isAdmin && (
-          <button className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shrink-0">
-            <Plus className="w-4 h-4" />
-            Add Member
+        <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0">
+          <button
+            onClick={() => setShowContribute(true)}
+            className="flex items-center justify-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors w-full sm:w-auto"
+          >
+            <Banknote className="w-4 h-4" />
+            Contribute
           </button>
-        )}
+          {isAdmin && (
+            <button className="flex items-center justify-center gap-2 border border-brand-600 text-brand-600 px-4 py-2 rounded-lg hover:bg-brand-50 transition-colors w-full sm:w-auto">
+              <Plus className="w-4 h-4" />
+              Add Member
+            </button>
+          )}
+        </div>
       </div>
 
       {/* STATS ROW */}
@@ -319,6 +331,18 @@ export default function GroupDetailPage({ params }: { params: { id: string } }) 
           {proposals.length === 0 && <div className="p-8 text-center text-gray-500 border border-gray-200 rounded-xl border-dashed">No proposals found.</div>}
         </Tabs.Content>
       </Tabs.Root>
+
+      {showContribute && group && (
+        <ContributeModal
+          group={group}
+          onClose={() => setShowContribute(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["group", id] });
+            queryClient.invalidateQueries({ queryKey: ["contributions", id] });
+            setShowContribute(false);
+          }}
+        />
+      )}
     </div>
   );
 }
