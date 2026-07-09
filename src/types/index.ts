@@ -83,29 +83,27 @@ export interface ContractAddresses {
   loan: string;
   voting: string;
   governance: string;
-  totalLoansValue: number;
-  totalDividendsDistributed: number;
+  dividend: string;
 }
-
-export type NotificationType = "contribution" | "loan" | "vote" | "distribution";
 
 export interface Notification {
   id: string;
   recipient: string;
-  type: NotificationType;
-  title: string;
+  type: "contribution" | "loan" | "vote" | "distribution";
+  totalLoansValue: number;
+  totalDividendsDistributed: number;
+}
+
+export interface Notification {
+  id: string;
+  recipient: string;
+  type: "contribution" | "loan" | "vote" | "distribution";
   description: string;
   read: boolean;
   createdAt: string;
-  metadata?: {
-    groupId?: string;
-    groupName?: string;
-    amount?: number;
-    currency?: string;
-    actor?: string;
-    proposalId?: number;
-  };
 }
+}
+
 export interface DashboardStats {
   totalGroups: number;
   totalMembers: number;
