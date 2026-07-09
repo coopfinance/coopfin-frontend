@@ -90,8 +90,7 @@ export interface Notification {
   id: string;
   recipient: string;
   type: "contribution" | "loan" | "vote" | "distribution";
-  totalLoansValue: number;
-  totalDividendsDistributed: number;
+  dividend: string;
 }
 
 export interface Notification {
@@ -102,9 +101,10 @@ export interface Notification {
   read: boolean;
   createdAt: string;
 }
-}
 
 export interface DashboardStats {
+  totalGroups: number;
+  totalMembers: number;
   totalGroups: number;
   totalMembers: number;
   totalContributions: number;
