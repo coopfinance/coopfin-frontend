@@ -3,8 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Sidebar } from "@/components/ui/sidebar";
-import { Toaster } from "@/components/ui/toaster";
 import { WalletButton } from "@/components/ui/wallet-button";
+import { Toaster } from "@/components/ui/toaster";
+import { WalletConnectButton } from "@/components/wallet-connect";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,12 +23,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 ml-64 p-6">
-              <div className="flex justify-end mb-4">
+            <div className="flex-1 ml-64 flex flex-col min-h-screen">
+              <header className="flex items-center justify-end gap-4 px-6 h-14 border-b border-gray-200 bg-white">
                 <WalletButton />
-              </div>
-              {children}
-            </main>
+              </header>
+              <main className="flex-1 p-6">{children}</main>
+            </div>
           </div>
           <Toaster />
         </Providers>

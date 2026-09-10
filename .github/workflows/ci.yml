@@ -13,12 +13,32 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
       - run: npm ci
       - run: npm run type-check
       - run: npm run lint
       - run: npm run build
         env:
+          NEXT_PUBLIC_STELLAR_NETWORK: testnet
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_STELLAR_NETWORK: testnet
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+      - run: npx playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_STELLAR_NETWORK: testnet
           NEXT_PUBLIC_API_URL: http://localhost:3001
