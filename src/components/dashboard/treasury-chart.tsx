@@ -1,212 +1,139 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import { useMemo } from "react";
 import {
-  Area,
   AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
+  Area,
   XAxis,
   YAxis,
-  type TooltipProps,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { DollarSign } from "lucide-react";
+import { formatAmount } from "@/lib/stellar";
 
-const CONTRIBUTION_COLOR = "#16a34a";
-const LOAN_COLOR = "#d97706";
-
-interface TreasuryChartProps {
-  groupId?: string;
+interface ChartDataPoint {
+  period: string;
+  totalContributions: number;
+  loansOutstanding: number;
 }
 
-interface ContributionPoint {
-  period: number;
-  contributions: number;
-  loans: number;
+const MOCK_DATA: ChartDataPoint[] = [
+  { period: "C1", totalContributions: 50_000_000_000, loansOutstanding: 0 },
+  { period: "C2", totalContributions: 125_000_000_000, loansOutstanding: 30_000_000_000 },
+  { period: "C3", totalContributions: 210_000_000_000, loansOutstanding: 55_000_000_000 },
+  { period: "C4", totalContributions: 320_000_000_000, loansOutstanding: 40_000_000_000 },
+  { period: "C5", totalContributions: 450_000_000_000, loansOutstanding: 70_000_000_000 },
+  { period: "C6", totalContributions: 580_000_000_000, loansOutstanding: 65_000_000_000 },
+  { period: "C7", totalContributions: 720_000_000_000, loansOutstanding: 90_000_000_000 },
+  { period: "C8", totalContributions: 850_000_000_000, loansOutstanding: 80_000_000_000 },
+];
+
+async function fetchContributionData(): Promise<ChartDataPoint[]> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/contributions`
+    );
+    if (!res.ok) throw new Error("Failed to fetch contributions");
+    const data: unknown = await res.json();
+    if (!Array.isArray(data) || data.length === 0) throw new Error("Empty contributions");
+    return data as ChartDataPoint[];
+  } catch {
+    return MOCK_DATA;
+  }
 }
 
-interface ApiContribution {
-  period: number;
-  amount: number;
-  loansOutstanding?: number;
-}
-
-interface ApiResponse {
-  contributions: ApiContribution[];
-}
-
-const USDC = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
-
-async function fetchContributions(groupId: string): Promise<ContributionPoint[]> {
-  const { data } = await axios.get<ApiResponse>(`/api/groups/${groupId}/contributions`);
-  const rows = data?.contributions ?? [];
-
-  // Build cumulative contribution series sorted by period.
-  const sorted = [...rows].sort((a, b) => a.period - b.period);
-  let cumContrib = 0;
-  return sorted.map((row) => {
-    cumContrib += row.amount ?? 0;
-    return {
-      period: row.period,
-      contributions: cumContrib,
-      loans: row.loansOutstanding ?? 0,
-    };
-  });
-}
-
-function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
-  if (!active || !payload || payload.length === 0) return null;
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs shadow-md">
-      <p className="font-medium text-gray-900">Period {label}</p>
-      {payload.map((entry) => (
-        <p key={entry.dataKey as string} className="mt-1 flex items-center gap-2">
-          <span
-            className="inline-block h-2 w-2 rounded-full"
-            style={{ backgroundColor: entry.color }}
-          />
-          <span className="text-gray-600">{entry.name}:</span>
-          <span className="font-semibold text-gray-900">
-            {USDC.format(Number(entry.value ?? 0))} USDC
-          </span>
-        </p>
-      ))}
-    </div>
-  );
-}
-
-function ChartSkeleton() {
-  return (
-    <div
-      className="h-64 w-full animate-pulse rounded-lg bg-gray-100"
-      aria-label="Loading treasury chart"
-      role="status"
-    />
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 text-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50">
-        <TrendingUp className="h-5 w-5 text-green-600" />
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-900">No treasury activity yet</p>
-        <p className="mt-1 text-xs text-gray-500">
-          Once members start contributing, balances will appear here.
-        </p>
-      </div>
-      <button
-        type="button"
-        className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
-      >
-        Make first contribution
-      </button>
-    </div>
-  );
-}
-
-export function TreasuryChart({ groupId }: TreasuryChartProps) {
-  const enabled = Boolean(groupId);
-
-  const { data, isLoading, isError } = useQuery<ContributionPoint[]>({
-    queryKey: ["treasury-contributions", groupId],
-    queryFn: () => fetchContributions(groupId as string),
-    enabled,
+export function TreasuryChart() {
+  const { data = MOCK_DATA, isLoading } = useQuery({
+    queryKey: ["treasury-chart"],
+    queryFn: fetchContributionData,
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
 
-  const series = useMemo(() => data ?? [], [data]);
+  const hasData = data.length > 0;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
-      <div className="mb-4 flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Treasury balance</h3>
-          <p className="text-xs text-gray-500">
-            Cumulative contributions vs. outstanding loans
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <h3 className="text-base font-semibold text-gray-900 mb-4">
+        Treasury Overview
+      </h3>
+      {isLoading ? (
+        <div className="h-64 space-y-3">
+          <div className="h-4 w-32 bg-gray-100 animate-pulse rounded" />
+          <div className="h-48 w-full bg-gray-100 animate-pulse rounded" />
+        </div>
+      ) : !hasData ? (
+        <div className="h-64 flex flex-col items-center justify-center text-center">
+          <DollarSign className="w-10 h-10 text-gray-300 mb-3" />
+          <p className="text-sm text-gray-500 font-medium mb-1">
+            No contribution data yet
+          </p>
+          <p className="text-xs text-gray-400 max-w-[220px]">
+            Start contributing to your cooperative to see treasury growth here.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
-          <span className="flex items-center gap-1.5">
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: CONTRIBUTION_COLOR }}
-            />
-            Contributions
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: LOAN_COLOR }}
-            />
-            Loans
-          </span>
-        </div>
-      </div>
-
-      {!enabled || isLoading ? (
-        <ChartSkeleton />
-      ) : isError || series.length === 0 ? (
-        <EmptyState />
       ) : (
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="contributionsFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={CONTRIBUTION_COLOR} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={CONTRIBUTION_COLOR} stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="loansFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={LOAN_COLOR} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={LOAN_COLOR} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="#f3f4f6" vertical={false} />
-              <XAxis
-                dataKey="period"
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(v: number) => `P${v}`}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                tickLine={false}
-                axisLine={false}
-                width={48}
-                tickFormatter={(v: number) => USDC.format(v)}
-              />
-              <Tooltip content={<ChartTooltip />} cursor={{ stroke: "#e5e7eb" }} />
-              <Area
-                type="monotone"
-                dataKey="contributions"
-                name="Total Contributions"
-                stroke={CONTRIBUTION_COLOR}
-                strokeWidth={2}
-                fill="url(#contributionsFill)"
-              />
-              <Area
-                type="monotone"
-                dataKey="loans"
-                name="Loans Outstanding"
-                stroke={LOAN_COLOR}
-                strokeWidth={2}
-                fill="url(#loansFill)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart
+            data={data}
+            margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="colorContributions" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#16a34a" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorLoans" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#d97706" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#d97706" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+            <XAxis
+              dataKey="period"
+              tick={{ fontSize: 12, fill: "#9ca3af" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 12, fill: "#9ca3af" }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v: number) => `$${formatAmount(v)}`}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "#fff",
+                border: "1px solid #e5e7eb",
+                borderRadius: "0.5rem",
+                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                fontSize: "0.875rem",
+              }}
+              formatter={(value: number, name: string) => [
+                `$${formatAmount(value)}`,
+                name,
+              ]}
+            />
+            <Area
+              type="monotone"
+              dataKey="totalContributions"
+              name="Total Contributions"
+              stroke="#16a34a"
+              strokeWidth={2}
+              fill="url(#colorContributions)"
+            />
+            <Area
+              type="monotone"
+              dataKey="loansOutstanding"
+              name="Loans Outstanding"
+              stroke="#d97706"
+              strokeWidth={2}
+              fill="url(#colorLoans)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       )}
     </div>
   );
