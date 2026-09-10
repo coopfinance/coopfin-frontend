@@ -5,6 +5,7 @@ import { Providers } from "@/components/providers";
 import { Sidebar } from "@/components/ui/sidebar";
 import { WalletButton } from "@/components/ui/wallet-button";
 import { Toaster } from "@/components/ui/toaster";
+import { WalletConnectButton } from "@/components/wallet-connect";
 
 const inter = Inter({ subsets: ["latin"] });
 
