@@ -1,176 +1,140 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart,
   Area,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
+  CartesianGrid,
 } from "recharts";
-import { Loader2 } from "lucide-react";
+import { DollarSign } from "lucide-react";
+import { formatAmount } from "@/lib/stellar";
 
-interface ContributionData {
+interface ChartDataPoint {
   period: string;
-  contributions: number;
-  loans: number;
+  totalContributions: number;
+  loansOutstanding: number;
 }
 
-function SkeletonLoader() {
-  return (
-    <div className="w-full h-64 flex items-center justify-center bg-gray-50 rounded-lg animate-pulse">
-      <div className="flex flex-col items-center gap-2">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="text-sm text-gray-400">Loading chart data...</span>
-      </div>
-    </div>
-  );
-}
+const MOCK_DATA: ChartDataPoint[] = [
+  { period: "C1", totalContributions: 50_000_000_000, loansOutstanding: 0 },
+  { period: "C2", totalContributions: 125_000_000_000, loansOutstanding: 30_000_000_000 },
+  { period: "C3", totalContributions: 210_000_000_000, loansOutstanding: 55_000_000_000 },
+  { period: "C4", totalContributions: 320_000_000_000, loansOutstanding: 40_000_000_000 },
+  { period: "C5", totalContributions: 450_000_000_000, loansOutstanding: 70_000_000_000 },
+  { period: "C6", totalContributions: 580_000_000_000, loansOutstanding: 65_000_000_000 },
+  { period: "C7", totalContributions: 720_000_000_000, loansOutstanding: 90_000_000_000 },
+  { period: "C8", totalContributions: 850_000_000_000, loansOutstanding: 80_000_000_000 },
+];
 
-function EmptyState() {
-  return (
-    <div className="w-full h-64 flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-      <div className="text-center">
-        <p className="text-gray-500 text-sm font-medium">No contribution data yet</p>
-        <p className="text-gray-400 text-xs mt-1">Contributions will appear here</p>
-      </div>
-    </div>
-  );
+async function fetchContributionData(): Promise<ChartDataPoint[]> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/contributions`
+    );
+    if (!res.ok) throw new Error("Failed to fetch contributions");
+    const data: unknown = await res.json();
+    if (!Array.isArray(data) || data.length === 0) throw new Error("Empty contributions");
+    return data as ChartDataPoint[];
+  } catch {
+    return MOCK_DATA;
+  }
 }
 
 export function TreasuryChart() {
-  const [data, setData] = useState<ContributionData[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data = MOCK_DATA, isLoading } = useQuery({
+    queryKey: ["treasury-chart"],
+    queryFn: fetchContributionData,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        // Try to fetch from API first
-        const res = await fetch("/api/groups/contributions");
-        if (res.ok) {
-          const json = await res.json();
-          setData(json.data || json);
-        } else {
-          // Fallback to mock data for demonstration
-          setData([
-            { period: "Jan", contributions: 1200, loans: 400 },
-            { period: "Feb", contributions: 1800, loans: 600 },
-            { period: "Mar", contributions: 2400, loans: 800 },
-            { period: "Apr", contributions: 2100, loans: 700 },
-            { period: "May", contributions: 3200, loans: 1100 },
-            { period: "Jun", contributions: 4100, loans: 1400 },
-            { period: "Jul", contributions: 3800, loans: 1200 },
-            { period: "Aug", contributions: 4500, loans: 1500 },
-            { period: "Sep", contributions: 5200, loans: 1700 },
-            { period: "Oct", contributions: 4800, loans: 1600 },
-            { period: "Nov", contributions: 5600, loans: 1900 },
-            { period: "Dec", contributions: 6200, loans: 2100 },
-          ]);
-        }
-      } catch {
-        // Use mock data on network error
-        setData([
-          { period: "Jan", contributions: 1200, loans: 400 },
-          { period: "Feb", contributions: 1800, loans: 600 },
-          { period: "Mar", contributions: 2400, loans: 800 },
-          { period: "Apr", contributions: 2100, loans: 700 },
-          { period: "May", contributions: 3200, loans: 1100 },
-          { period: "Jun", contributions: 4100, loans: 1400 },
-          { period: "Jul", contributions: 3800, loans: 1200 },
-          { period: "Aug", contributions: 4500, loans: 1500 },
-          { period: "Sep", contributions: 5200, loans: 1700 },
-          { period: "Oct", contributions: 4800, loans: 1600 },
-          { period: "Nov", contributions: 5600, loans: 1900 },
-          { period: "Dec", contributions: 6200, loans: 2100 },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
-
-  if (loading) return <SkeletonLoader />;
-  if (!data || data.length === 0) return <EmptyState />;
+  const hasData = data.length > 0;
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-700">Treasury Overview</h3>
-        <span className="text-xs text-gray-400">USDC</span>
-      </div>
-      <div className="w-full h-64">
-        <ResponsiveContainer width="100%" height="100%">
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <h3 className="text-base font-semibold text-gray-900 mb-4">
+        Treasury Overview
+      </h3>
+      {isLoading ? (
+        <div className="h-64 space-y-3">
+          <div className="h-4 w-32 bg-gray-100 animate-pulse rounded" />
+          <div className="h-48 w-full bg-gray-100 animate-pulse rounded" />
+        </div>
+      ) : !hasData ? (
+        <div className="h-64 flex flex-col items-center justify-center text-center">
+          <DollarSign className="w-10 h-10 text-gray-300 mb-3" />
+          <p className="text-sm text-gray-500 font-medium mb-1">
+            No contribution data yet
+          </p>
+          <p className="text-xs text-gray-400 max-w-[220px]">
+            Start contributing to your cooperative to see treasury growth here.
+          </p>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
           <AreaChart
             data={data}
-            margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+            margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
           >
             <defs>
               <linearGradient id="colorContributions" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                <stop offset="5%" stopColor="#16a34a" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="colorLoans" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                <stop offset="5%" stopColor="#d97706" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#d97706" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
             <XAxis
               dataKey="period"
-              tick={{ fontSize: 11, fill: "#9ca3af" }}
+              tick={{ fontSize: 12, fill: "#9ca3af" }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#9ca3af" }}
+              tick={{ fontSize: 12, fill: "#9ca3af" }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(value) => `$${value.toLocaleString()}`}
+              tickFormatter={(v: number) => `$${formatAmount(v)}`}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: "#fff",
                 border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                fontSize: "12px",
+                borderRadius: "0.5rem",
+                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                fontSize: "0.875rem",
               }}
               formatter={(value: number, name: string) => [
-                `$${value.toLocaleString()}`,
-                name === "contributions" ? "Total Contributions" : "Loans Outstanding",
+                `$${formatAmount(value)}`,
+                name,
               ]}
-              labelFormatter={(label) => `Period: ${label}`}
-            />
-            <Legend
-              wrapperStyle={{ fontSize: "12px" }}
-              formatter={(value) =>
-                value === "contributions" ? "Total Contributions" : "Loans Outstanding"
-              }
             />
             <Area
               type="monotone"
-              dataKey="contributions"
-              stroke="#10b981"
+              dataKey="totalContributions"
+              name="Total Contributions"
+              stroke="#16a34a"
               strokeWidth={2}
-              fillOpacity={1}
               fill="url(#colorContributions)"
             />
             <Area
               type="monotone"
-              dataKey="loans"
-              stroke="#f59e0b"
+              dataKey="loansOutstanding"
+              name="Loans Outstanding"
+              stroke="#d97706"
               strokeWidth={2}
-              fillOpacity={1}
               fill="url(#colorLoans)"
             />
           </AreaChart>
         </ResponsiveContainer>
-      </div>
+      )}
     </div>
   );
 }

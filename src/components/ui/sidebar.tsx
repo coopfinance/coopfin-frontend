@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Users, CreditCard, Vote, Landmark, BarChart3, Settings,
+  LayoutDashboard, Users, CreditCard, Vote, Landmark, BarChart3, Settings, Wallet, LogOut,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { useWallet } from "@/hooks/use-wallet";
+import { shortenAddress } from "@/lib/stellar";
 
 const navItems = [
   { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
@@ -19,6 +21,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { address, connect, disconnect, isConnecting } = useWallet();
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -56,6 +59,39 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Wallet */}
+      <div className="px-4 py-4 border-t border-gray-100 space-y-2">
+        <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+          <Wallet className="w-3.5 h-3.5" />
+          <span>Wallet</span>
+        </div>
+        {address ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-mono text-gray-700 truncate" data-testid="wallet-address">
+              {shortenAddress(address)}
+            </span>
+            <button
+              type="button"
+              onClick={disconnect}
+              className="text-xs text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
+              data-testid="disconnect-btn"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={connect}
+            disabled={isConnecting}
+            className="w-full text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+            data-testid="connect-wallet-btn"
+          >
+            {isConnecting ? "Connecting..." : "Connect Wallet"}
+          </button>
+        )}
+      </div>
 
       {/* Stellar indicator */}
       <div className="px-4 py-3 border-t border-gray-100">

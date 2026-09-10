@@ -86,7 +86,18 @@ export interface ContractAddresses {
   dividend: string;
 }
 
+export interface Notification {
+  id: string;
+  recipient: string;
+  type: "contribution" | "loan" | "vote" | "distribution";
+  description: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface DashboardStats {
+  totalGroups: number;
+  totalMembers: number;
   totalGroups: number;
   totalMembers: number;
   totalContributions: number;
