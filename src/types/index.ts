@@ -90,13 +90,6 @@ export interface Notification {
   id: string;
   recipient: string;
   type: "contribution" | "loan" | "vote" | "distribution";
-  dividend: string;
-}
-
-export interface Notification {
-  id: string;
-  recipient: string;
-  type: "contribution" | "loan" | "vote" | "distribution";
   description: string;
   read: boolean;
   createdAt: string;
