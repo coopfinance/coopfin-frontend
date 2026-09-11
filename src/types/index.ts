@@ -98,6 +98,8 @@ export interface Notification {
 export interface DashboardStats {
   totalGroups: number;
   totalMembers: number;
+  totalGroups: number;
+  totalMembers: number;
   totalContributions: number;
   totalLoansActive: number;
   totalLoansValue: number;

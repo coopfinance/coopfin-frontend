@@ -4,14 +4,18 @@ import { useState, useCallback } from "react";
 import {
   StellarWalletsKit,
   WalletNetwork,
+  FreighterModule,
   FREIGHTER_ID,
-  allowAllModules,
+  LobstrModule,
+  LOBSTR_ID,
+  xBullModule,
+  XBULL_ID,
 } from "@creit.tech/stellar-wallets-kit";
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,
   selectedWalletId: FREIGHTER_ID,
-  modules: allowAllModules(),
+  modules: [new FreighterModule(), new LobstrModule(), new xBullModule()],
 });
 
 export function useWallet() {
