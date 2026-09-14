@@ -86,11 +86,35 @@ export interface ContractAddresses {
   dividend: string;
 }
 
+export interface Notification {
+  id: string;
+  recipient: string;
+  type: "contribution" | "loan" | "vote" | "distribution";
+  description: string;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface DashboardStats {
+  totalGroups: number;
+  totalMembers: number;
   totalGroups: number;
   totalMembers: number;
   totalContributions: number;
   totalLoansActive: number;
   totalLoansValue: number;
   totalDividendsDistributed: number;
+}
+
+export type NotificationType = "contribution" | "loan" | "vote" | "distribution";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  description: string;
+  timestamp: string;
+  read: boolean;
+  recipient: string;
+  groupName?: string;
+  amount?: number;
 }
