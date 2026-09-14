@@ -25,7 +25,7 @@ export const SOROBAN_RPC_URL =
 export const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
 
 export const networkPassphrase =
-  STELLAR_NETWORK === "MAINNET"
+  (STELLAR_NETWORK as string) === "MAINNET" || STELLAR_NETWORK === "PUBLIC"
     ? Networks.PUBLIC
     : Networks.TESTNET;
 
