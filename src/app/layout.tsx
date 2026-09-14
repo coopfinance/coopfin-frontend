@@ -10,7 +10,7 @@ import { WalletConnectButton } from "@/components/wallet-connect";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CoopFinance — Cooperative Finance on Stellar",
+  title: "CoopFinance 鈥?Cooperative Finance on Stellar",
   description:
     "Open-source platform for savings groups, cooperatives, and rotating-credit associations built on Stellar.",
   keywords: ["cooperative", "savings", "Stellar", "USDC", "Africa", "SACCO", "Ajo", "Esusu"],
