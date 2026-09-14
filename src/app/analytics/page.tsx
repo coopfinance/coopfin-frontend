@@ -78,6 +78,7 @@ const BRAND = {
   amber: "#d97706",
   purple: "#7c3aed",
   red: "#dc2626",
+  gray: "#6b7280",
 };
 
 const LOAN_STATUS_COLORS: Record<Loan["status"], string> = {
